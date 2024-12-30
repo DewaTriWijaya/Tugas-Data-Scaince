@@ -40,13 +40,22 @@ def create_weekday_vs_weekend_df(df):
 
 # Perhitungan puncak penggunaan sepeda berdasarkan season
 def create_peak_season_df(df):
-    df['month'] = df['dteday'].dt.month
-    peak_season_df = df.groupby('month').agg({
+    df['mnth'] = pd.to_datetime(df['dteday']).dt.month
+    
+    peak_season_df = df.groupby('mnth').agg({
         "cnt": "sum"
     }).reset_index()
+    
     peak_season_df.rename(columns={
         "cnt": "total_cnt"
     }, inplace=True)
+    
+    # Map month numbers to month names
+    peak_season_df['mnth'] = peak_season_df['mnth'].map({
+        1: 'January', 2: 'February', 3: 'March', 4: 'April', 5: 'May', 6: 'June',
+        7: 'July', 8: 'August', 9: 'September', 10: 'October', 11: 'November', 12: 'December'
+    })
+    
     return peak_season_df
 
 # perbedaan penyewaan sepeda dengan berdasarkan weathersit (cuaca)
@@ -57,37 +66,28 @@ def create_weather_df(df):
     weather_df.rename(columns={
         "cnt": "total_cnt"
     }, inplace=True)
+
+    # Change Weathersit manjadi kategorikal
+    weather_df["weathersit"] = weather_df["weathersit"].map({
+        1: 'Clear', 2:'Mist', 3:'Light Rain', 4:'Heavy Rains'
+    })
+
     return weather_df
 
-# menampilkan data berdasarkan hari dan musim menggunakan grafik scatter
+# menampilkan data berdasarkan hari dan musim menggunakan grafik 
 def create_scatter_df(df):
     scatter_df = df.groupby(['weekday', 'season']).agg({
         "cnt": "sum"
-    }).reset_index()
+    }).unstack().fillna(0)
+
+    scatter_df.columns = scatter_df.columns.droplevel(0)
+    scatter_df.reset_index(inplace=True)
+    
     return scatter_df
 
 
 # Load cleaned data
-all_df = pd.read_csv("dashboard/day.csv")
-# Mengubah data mnth menjadi kategori example: 1 -> January
-all_df['mnth'] = all_df['mnth'].map({1:'January', 2:'February', 3:'March', 4:'April', 5:'May', 6:'June', 7:'July', 8:'August', 9:'September', 10:'October', 11:'November', 12:'December'})
-
-# Mengubah data weekday menjadi kategori example: 0 -> Sunday
-all_df['weekday'] = all_df['weekday'].map({0:'Sunday', 1:'Monday', 2:'Tuesday', 3:'Wednesday', 4:'Thursday', 5:'Friday', 6:'Saturday'})
-
-# Mengubah data season menjadi kategori example: 1 -> Spring
-all_df['season'] = all_df['season'].map({1:'Spring', 2:'Summer', 3:'Fall', 4:'Winter'})
-
-# Mengubah data yr menjadi kategori example: 0 -> 2011
-all_df['yr'] = all_df['yr'].map({0:2011, 1:2012})
-
-# Mengubah data holiday menjadi kategori example: 0 -> No
-all_df['holiday'] = all_df['holiday'].map({0:'No', 1:'Yes'})
-
-# Mengubah data workingday menjadi kategori example: 0 -> No
-all_df['workingday'] = all_df['workingday'].map({0:'No', 1:'Yes'})
-
-
+all_df = pd.read_csv("dashboard/modified_day.csv")
 
 datetime_columns = ["dteday"]
 all_df.sort_values(by="dteday", inplace=True)
@@ -117,6 +117,9 @@ main_df = all_df[(all_df["dteday"] >= str(start_date)) &
 
 daily_orders_df = create_daily_orders_df(main_df)
 weekday_vs_weekend_df = create_weekday_vs_weekend_df(main_df)
+peak_season_df = create_peak_season_df(main_df)
+weather_df = create_weather_df(main_df)
+scatter_df = create_scatter_df(main_df)
 
 # plot number of daily sharing (2011)
 st.header('Bike Sharing Collection Dashboard :sparkles:')
@@ -167,17 +170,16 @@ st.pyplot(fig)
 
 # bar plot peak season
 st.header('Peak Season Orders')
-peak_season_df = create_peak_season_df(main_df)
 fig, ax = plt.subplots(figsize=(12, 6))
-sns.barplot(data=peak_season_df, x='month', y='total_cnt', ax=ax)
+print(peak_season_df["mnth"])
+sns.barplot(data=peak_season_df, x='mnth', y='total_cnt', ax=ax)
 plt.title('Total Orders: Peak Season')
-plt.xlabel('Month')
+plt.xlabel('mnth')
 plt.ylabel('Total Orders')
 st.pyplot(fig)
 
 # bar plot weather
 st.header('Weather Orders')
-weather_df = create_weather_df(main_df)
 fig, ax = plt.subplots(figsize=(12, 6))
 sns.barplot(data=weather_df, x='weathersit', y='total_cnt', ax=ax)
 plt.title('Total Orders: Weather')
@@ -186,14 +188,14 @@ plt.ylabel('Total Orders')
 st.pyplot(fig)
 
 # manampilkan data berdasarkan hari dan musim menggunakan grafik scatter
-st.header('Scatter Plot')
-scatter_df = create_scatter_df(main_df)
+st.header('Stacked Bar Chart: Hari dan Musim')
 fig, ax = plt.subplots(figsize=(12, 6))
-sns.scatterplot(data=scatter_df, x='weekday', y='cnt', hue='season', ax=ax)
-plt.title('Scatter Plot: Day vs Value by Season')
-plt.xlabel('weekday')
-plt.ylabel('Value')
-plt.legend(title='Season')
+# Assuming scatter_df has columns for different seasons and 'weekday' for days
+scatter_df.set_index('weekday').plot(kind='bar', stacked=True, ax=ax)
+plt.title('Data Berdasarkan Hari dan Musim')
+plt.xlabel('Hari')
+plt.ylabel('Jumlah')
+plt.legend(title='Musim')
 st.pyplot(fig)
 
 
