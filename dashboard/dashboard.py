@@ -9,15 +9,15 @@ sns.set(style='dark')
 def create_daily_orders_df(df):
     df['dteday'] = pd.to_datetime(df['dteday'])
     daily_orders_df = df.resample(rule='D', on='dteday').agg({
-        "cnt": "sum",         # Jumlah total penyewaan
-        "registered": "sum",  # Total pengguna terdaftar
-        "casual": "sum"       # Total pengguna kasual (opsional)
+        "cnt": "sum",        
+        "registered": "sum",  
+        "casual": "sum"       
     })
     daily_orders_df = daily_orders_df.reset_index()
     daily_orders_df.rename(columns={
-        "cnt": "total_cnt",        # Total jumlah penyewaan
-        "registered": "registered",  # Pengguna terdaftar
-        "casual": "casual"         # Pengguna kasual
+        "cnt": "total_cnt",        
+        "registered": "registered",  
+        "casual": "casual"         
     }, inplace=True)
     return daily_orders_df
 
@@ -50,7 +50,6 @@ def create_peak_season_df(df):
         "cnt": "total_cnt"
     }, inplace=True)
     
-    # Map month numbers to month names
     peak_season_df['mnth'] = peak_season_df['mnth'].map({
         1: 'January', 2: 'February', 3: 'March', 4: 'April', 5: 'May', 6: 'June',
         7: 'July', 8: 'August', 9: 'September', 10: 'October', 11: 'November', 12: 'December'
@@ -129,15 +128,15 @@ col1, col2, col3 = st.columns(3)
 
 with col1:
     total_user = daily_orders_df['total_cnt'].sum()
-    st.metric("Total User", value=f"{total_user:,.0f}")  # Format angka dengan pemisah ribuan
+    st.metric("Total User", value=f"{total_user:,.0f}")  
 
 with col2:
     total_registered = daily_orders_df['registered'].sum()
-    st.metric("Total Registered", value=f"{total_registered:,.0f}")  # Format angka dengan pemisah ribuan
+    st.metric("Total Registered", value=f"{total_registered:,.0f}")  
 
 with col3:
     total_casual = daily_orders_df['casual'].sum()
-    st.metric("Total Casual", value=f"{total_casual:,.0f}")  # Format angka dengan pemisah ribuan
+    st.metric("Total Casual", value=f"{total_casual:,.0f}")  
 
 # Plot total daily orders
 fig, ax = plt.subplots(figsize=(12, 6))
@@ -171,7 +170,6 @@ st.pyplot(fig)
 # bar plot peak season
 st.header('Peak Season Orders')
 fig, ax = plt.subplots(figsize=(12, 6))
-print(peak_season_df["mnth"])
 sns.barplot(data=peak_season_df, x='mnth', y='total_cnt', ax=ax)
 plt.title('Total Orders: Peak Season')
 plt.xlabel('mnth')
@@ -190,7 +188,6 @@ st.pyplot(fig)
 # manampilkan data berdasarkan hari dan musim menggunakan grafik scatter
 st.header('Stacked Bar Chart: Hari dan Musim')
 fig, ax = plt.subplots(figsize=(12, 6))
-# Assuming scatter_df has columns for different seasons and 'weekday' for days
 scatter_df.set_index('weekday').plot(kind='bar', stacked=True, ax=ax)
 plt.title('Data Berdasarkan Hari dan Musim')
 plt.xlabel('Hari')
